@@ -1,0 +1,20 @@
+{
+  "name": "hyperplane",
+  "version": "0.0.1",
+  "description": "A ReactiveX based components system for Web Components",
+  "main": "dist/hyperplane.js",
+  "module": "dist/hyperplane.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Draccoz/hyperplane.git"
+  },
+  "author": "Daniel Busłowicz",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/Draccoz/hyperplane/issues"
+  },
+  "homepage": "https://github.com/Draccoz/hyperplane#readme"
+}
