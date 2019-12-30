@@ -16,5 +16,11 @@
   "bugs": {
     "url": "https://github.com/Draccoz/hyperplane/issues"
   },
-  "homepage": "https://github.com/Draccoz/hyperplane#readme"
+  "homepage": "https://github.com/Draccoz/hyperplane#readme",
+  "peerDependencies": {
+    "rxjs": "^6.5.3"
+  },
+  "devDependencies": {
+    "typescript": "^3.7.4"
+  }
 }
