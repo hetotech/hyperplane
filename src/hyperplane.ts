@@ -1,6 +1,5 @@
-import { BehaviorSubject, fromEvent, merge, Observable, of, OperatorFunction, UnaryFunction } from 'rxjs';
-import { pipeFromArray } from 'rxjs/internal/util/pipe';
-import { distinctUntilChanged, map, takeUntil, tap } from 'rxjs/operators';
+import { BehaviorSubject, fromEvent, merge, Observable, Subscription, UnaryFunction } from 'rxjs';
+import { distinctUntilChanged, map, tap } from 'rxjs/operators';
 
 /**
  * Built-in converters supported by the library
@@ -26,34 +25,35 @@ export function prop<T>(
   return { initial, ...config };
 }
 
-type PropertiesConfig = ObjectOf<PropertyConfig<any>>;
+export type PropertiesConfig = ObjectOf<PropertyConfig<any>>;
 
 export type TypeFromConfig<C extends PropertyConfig<any>> = C extends PropertyConfig<infer T> ? T : never;
 export type Setter<T> = [BehaviorSubject<T>, PropertyConfig<T>];
 export type Setters<C extends PropertiesConfig> = { [K in keyof C]: Setter<TypeFromConfig<C[K]>> };
 
-export function createPropertiesDescriptors(base: Element, props: PropertiesConfig): Setters<typeof props> {
+export function createPropertiesDescriptors<T extends PropertiesConfig>(
+  base: Element, props: T): Setters<typeof props> {
   const keys = Object.keys(props) as Array<keyof typeof props>;
-  const triggers = {} as ObjectOf<[BehaviorSubject<unknown>, any]>;
+  const triggers = {} as Setters<typeof props>;
 
-  Object.defineProperties(base, keys.reduce((proto, key) => {
+  Object.defineProperties(base, Object.fromEntries(keys.map(key => {
     const config = props[ key ];
-    const trigger$ = new BehaviorSubject('initial' in config ? config.initial : undefined);
+    const trigger$ = new BehaviorSubject('initial' in config ? config.initial : (base as any)[key]);
     triggers[ key ] = [trigger$, config];
-    proto[ key ] = {
+    return [key, {
       get: () => trigger$.getValue(),
       set: (newValue) => trigger$.next(newValue),
       enumerable: true
-    };
-    return proto;
-  }, {} as PropertyDescriptorMap));
+    }] as [string, PropertyDescriptor];
+  })));
+
   Object.freeze(triggers);
   return triggers;
 }
 
-type SettersEntry<T> = Observable<[keyof T, T[keyof T] extends Setter<infer V> ? V : T]>
+export type SettersEntry<E> = Observable<[keyof E, E[keyof E] extends Setter<infer T> ? T : any]>;
 
-export function fromSetters<P extends PropertiesConfig>(
+export function getPropertyChangeListener<P extends PropertiesConfig>(
   instance: Element, setters: Setters<P>): SettersEntry<typeof setters> {
   return merge(...Object
     .entries(setters)
@@ -95,84 +95,48 @@ export function fromSetters<P extends PropertiesConfig>(
 //   return dispatchers;
 // }
 
-export type Renderer = (result: unknown, container: (Element | DocumentFragment)) => void;
+export type Renderer<T = unknown> = (result: T, container: (Element | DocumentFragment)) => void;
 
-function createRender<T extends PropertiesConfig>(
-  node: Element, properties: T, changes$: Observable<any>, disconnected$: Observable<any>, renderer: Renderer) {
-  type P = { [K in keyof T]: T[K]['initial'] };
-  return render;
-
-  function render<A>(fn1: OperatorFunction<P, A>): void;
-  function render<A, B>(fn1: OperatorFunction<P, A>, fn2: OperatorFunction<A, B>): void;
-  function render<A, B, C>(fn1: OperatorFunction<P, A>, fn2: OperatorFunction<A, B>, fn3: OperatorFunction<B, C>): void;
-  function render<A, B, C, D>(
-    fn1: OperatorFunction<P, A>, fn2: OperatorFunction<A, B>, fn3: OperatorFunction<B, C>,
-    fn4: OperatorFunction<C, D>
-  ): void;
-  function render<A, B, C, D, E>(
-    fn1: OperatorFunction<P, A>, fn2: OperatorFunction<A, B>, fn3: OperatorFunction<B, C>, fn4: OperatorFunction<C, D>,
-    fn5: OperatorFunction<D, E>
-  ): void;
-  function render<A, B, C, D, E, F>(
-    fn1: OperatorFunction<P, A>, fn2: OperatorFunction<A, B>, fn3: OperatorFunction<B, C>, fn4: OperatorFunction<C, D>,
-    fn5: OperatorFunction<D, E>, fn6: OperatorFunction<E, F>
-  ): void;
-  function render<A, B, C, D, E, F, G>(
-    fn1: OperatorFunction<P, A>, fn2: OperatorFunction<A, B>, fn3: OperatorFunction<B, C>, fn4: OperatorFunction<C, D>,
-    fn5: OperatorFunction<D, E>, fn6: OperatorFunction<E, F>, fn7: OperatorFunction<F, G>
-  ): void;
-  function render<A, B, C, D, E, F, G, H>(
-    fn1: OperatorFunction<P, A>, fn2: OperatorFunction<A, B>, fn3: OperatorFunction<B, C>, fn4: OperatorFunction<C, D>,
-    fn5: OperatorFunction<D, E>, fn6: OperatorFunction<E, F>, fn7: OperatorFunction<F, G>, fn8: OperatorFunction<G, H>
-  ): void;
-  function render<A, B, C, D, E, F, G, H, I>(
-    fn1: OperatorFunction<P, A>, fn2: OperatorFunction<A, B>, fn3: OperatorFunction<B, C>, fn4: OperatorFunction<C, D>,
-    fn5: OperatorFunction<D, E>, fn6: OperatorFunction<E, F>, fn7: OperatorFunction<F, G>, fn8: OperatorFunction<G, H>,
-    fn9: OperatorFunction<H, I>
-  ): void;
-  function render<A, B, C, D, E, F, G, H, I>(
-    fn1: OperatorFunction<P, A>, fn2: OperatorFunction<A, B>, fn3: OperatorFunction<B, C>, fn4: OperatorFunction<C, D>,
-    fn5: OperatorFunction<D, E>, fn6: OperatorFunction<E, F>, fn7: OperatorFunction<F, G>, fn8: OperatorFunction<G, H>,
-    fn9: OperatorFunction<H, I>, ...fns: OperatorFunction<any, any>[]
-  ): void;
-
-  function render(...operations: OperatorFunction<any, any>[]) {
-    return node.addEventListener('connected', () => changes$
-      .pipe(
-        takeUntil(disconnected$),
-        map(() => {
-          return Object.keys(properties)
-            .reduce((props, key) => Object.assign(props, { [ key ]: (node as any)[ key ] }), {}) as P;
-        }),
-        pipeFromArray(operations),
-        tap((template) => renderer(template, node.shadowRoot || node))
-      )
-      .subscribe()
-    );
-  }
+export function mapProperties<P>(properties: PropertiesConfig, node: Element) {
+  return map(() => Object.fromEntries(
+    Object
+      .keys(properties)
+      .map(key => [key, (node as any)[ key ]])
+    ) as P
+  );
 }
 
-export function create<P extends PropertiesConfig>(node: Element, properties: P, { renderer }: { renderer: Renderer }) {
+export function create<P extends PropertiesConfig, T>(node: Element, properties: P, { renderer }: { renderer: Renderer<T> }) {
+  const subscriptions = [] as Subscription[];
+  const registeredObservables = [] as Observable<any>[];
+
   const setters = createPropertiesDescriptors(node, properties);
 
-  const propertyChanged$ = fromSetters(node, setters);
+  const propertyChanged$ = getPropertyChangeListener(node, setters);
 
   const connected$ = fromEvent(node, 'connected');
   const disconnected$ = fromEvent(node, 'disconnected');
 
   node.addEventListener('attributeChanged', ({ detail: [attr, , newValue] }: CustomEventInit) => setters[ attr ][ 0 ].next(newValue));
-
-  const render = createRender(node, properties, propertyChanged$, disconnected$, renderer);
-  const whileConnected = (...operations: OperatorFunction<any, any>[]) => node.addEventListener('connected', () =>
-    of(undefined)
-      .pipe(
-        takeUntil(disconnected$),
-        pipeFromArray(operations)
-      )
-      .subscribe()
+  node.addEventListener('connected', () => registeredObservables
+    .map((observable) => observable.subscribe())
+    .forEach((subscription) => subscriptions.push(subscription))
   );
+  node.addEventListener('disconnected', () => subscriptions
+    .splice(0, subscriptions.length)
+    .forEach((subscription) => subscription.unsubscribe())
+  );
+
+  function useTemplate(template: (props: P) => T) {
+    subscribe(propertyChanged$.pipe(
+      mapProperties<P>(properties, node),
+      tap((props) => renderer(template(props), node.shadowRoot || node))
+    ))
+  }
+
+  const subscribe = (...observables: Observable<any>[]) => registeredObservables.push(...observables);
   return {
-    render, whileConnected,
+    subscribe, useTemplate,
     connected$, disconnected$, propertyChanged$,
   };
 }
