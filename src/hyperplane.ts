@@ -1,4 +1,4 @@
-import { BehaviorSubject, fromEvent, merge, Observable, Subscription, UnaryFunction } from 'rxjs';
+import { BehaviorSubject, fromEvent, merge, Observable, OperatorFunction, Subscription } from 'rxjs';
 import { distinctUntilChanged, map, tap } from 'rxjs/operators';
 
 /**
@@ -17,41 +17,45 @@ export type PropertyConfig<T> = {
   initial: T,
   attributeName?: string,
   converter?: Converter<T>,
-  effects?(node: Element): UnaryFunction<Observable<T>, Observable<any>>
+  effects?(node: Element): OperatorFunction<T, any>
 };
-
-export function prop<T>(
-  initial: T, config: Omit<PropertyConfig<T>, 'initial'> = {}): PropertyConfig<T> {
-  return { initial, ...config };
-}
 
 export type PropertiesConfig = ObjectOf<PropertyConfig<any>>;
 
 export type TypeFromConfig<C extends PropertyConfig<any>> = C extends PropertyConfig<infer T> ? T : never;
 export type Setter<T> = [BehaviorSubject<T>, PropertyConfig<T>];
 export type Setters<C extends PropertiesConfig> = { [K in keyof C]: Setter<TypeFromConfig<C[K]>> };
+export type SettersEntry<E> = Observable<[keyof E, E[keyof E] extends Setter<infer T> ? T : any]>;
+export type Renderer<T = unknown> = (result: T, container: (Element | DocumentFragment)) => void;
+export type ConfigValues<P extends PropertiesConfig> = { [K in keyof P]: P[K] extends PropertyConfig<infer T> ? T : unknown };
+
+export function prop<T>(
+  initial: T, config: Omit<PropertyConfig<T>, 'initial'> = {}): PropertyConfig<T> {
+  return { initial, ...config };
+}
 
 export function createPropertiesDescriptors<T extends PropertiesConfig>(
   base: Element, props: T): Setters<typeof props> {
+  const newBase = base as typeof base & ConfigValues<T>
   const keys = Object.keys(props) as Array<keyof typeof props>;
   const triggers = {} as Setters<typeof props>;
 
-  Object.defineProperties(base, Object.fromEntries(keys.map(key => {
+  Object.defineProperties(newBase, Object.fromEntries(keys.map(key => {
     const config = props[ key ];
-    const trigger$ = new BehaviorSubject('initial' in config ? config.initial : (base as any)[key]);
+    const trigger$ = new BehaviorSubject(key in newBase ? newBase[ key ] : config.initial);
     triggers[ key ] = [trigger$, config];
-    return [key, {
-      get: () => trigger$.getValue(),
-      set: (newValue) => trigger$.next(newValue),
-      enumerable: true
-    }] as [string, PropertyDescriptor];
+    return [
+      key, {
+        get: () => trigger$.getValue(),
+        set: (newValue) => trigger$.next(newValue),
+        enumerable: true
+      }
+    ] as [string, PropertyDescriptor];
   })));
 
   Object.freeze(triggers);
   return triggers;
 }
-
-export type SettersEntry<E> = Observable<[keyof E, E[keyof E] extends Setter<infer T> ? T : any]>;
 
 export function getPropertyChangeListener<P extends PropertiesConfig>(
   instance: Element, setters: Setters<P>): SettersEntry<typeof setters> {
@@ -95,18 +99,17 @@ export function getPropertyChangeListener<P extends PropertiesConfig>(
 //   return dispatchers;
 // }
 
-export type Renderer<T = unknown> = (result: T, container: (Element | DocumentFragment)) => void;
-
-export function mapProperties<P>(properties: PropertiesConfig, node: Element) {
+export function mapProperties<P extends ObjectOf<PropertyConfig<any>>>(properties: P, node: Element) {
   return map(() => Object.fromEntries(
     Object
       .keys(properties)
       .map(key => [key, (node as any)[ key ]])
-    ) as P
+    ) as ConfigValues<P>
   );
 }
 
-export function create<P extends PropertiesConfig, T>(node: Element, properties: P, { renderer }: { renderer: Renderer<T> }) {
+export function create<P extends PropertiesConfig, T>(
+  node: Element, properties: P, { renderer }: { renderer: Renderer<T> }) {
   const subscriptions = [] as Subscription[];
   const registeredObservables = [] as Observable<any>[];
 
@@ -127,7 +130,7 @@ export function create<P extends PropertiesConfig, T>(node: Element, properties:
     .forEach((subscription) => subscription.unsubscribe())
   );
 
-  function useTemplate(template: (props: P) => T) {
+  function useTemplate(template: (props: ConfigValues<P>) => T) {
     subscribe(propertyChanged$.pipe(
       mapProperties<P>(properties, node),
       tap((props) => renderer(template(props), node.shadowRoot || node))
@@ -138,6 +141,7 @@ export function create<P extends PropertiesConfig, T>(node: Element, properties:
   return {
     subscribe, useTemplate,
     connected$, disconnected$, propertyChanged$,
+    component: node as typeof node & ConfigValues<P>
   };
 }
 

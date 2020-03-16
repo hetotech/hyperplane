@@ -1,5 +1,3 @@
-import { noop } from 'rxjs';
-
 type Spy = ((...args: any[]) => any) & {
   called: boolean;
   calledTimes: number;
@@ -33,6 +31,6 @@ export function createSpy(cb?: Function): Spy {
   });
 }
 
-export function markUsed(...args: any[]) {
-  args.forEach(noop);
+export function assertTSType<T>(arg: T) {
+  return arg;
 }
