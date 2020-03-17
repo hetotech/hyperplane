@@ -1,11 +1,12 @@
 {
-  "name": "hyperplane",
-  "version": "0.0.1",
+  "name": "@draccoz/hyperplane",
+  "version": "0.0.3",
   "description": "A ReactiveX based components system for Web Components",
   "main": "dist/hyperplane.js",
   "module": "dist/hyperplane.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "build": "tsc",
+    "test": "tsc -b test --pretty && mocha -r esm --timeout 0 --ui bdd test/_compiled/**/*.spec.js"
   },
   "repository": {
     "type": "git",
@@ -20,6 +21,7 @@
   "peerDependencies": {
     "rxjs": "^6.5.3"
   },
+  "publishConfig": { "registry": "https://npm.pkg.github.com/" },
   "devDependencies": {
     "@types/chai": "^4.2.7",
     "@types/mocha": "^5.2.7",

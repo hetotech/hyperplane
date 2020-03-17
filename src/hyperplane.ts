@@ -1,3 +1,4 @@
+/// <reference path="types.d.ts"/>
 import { BehaviorSubject, fromEvent, merge, Observable, OperatorFunction, Subscription } from 'rxjs';
 import { distinctUntilChanged, map, tap } from 'rxjs/operators';
 
@@ -30,10 +31,12 @@ export type Renderer<T = unknown> = (result: T, container: (Element | DocumentFr
 export type ConfigValues<P extends PropertiesConfig> = { [K in keyof P]: P[K] extends PropertyConfig<infer T> ? T : unknown };
 export type UpgradedElement<E extends Element, P extends PropertiesConfig> = E & ConfigValues<P>;
 
-type Constructor<T> = {(value?: any): T} | { new(...args: any[]): T };
+type Constructor<T> = { (value?: any): T } | { new(...args: any[]): T };
 
 export function voidProp<T extends Constructor<any>>(
-  initial: T, config: Omit<PropertyConfig<(T extends Constructor<infer R> ? R : any) | undefined>, 'initial'> = {}): PropertyConfig<(T extends Constructor<infer R> ? R : any) | undefined> {
+  initial: T,
+  config: Omit<PropertyConfig<(T extends Constructor<infer R> ? R : any) | undefined>, 'initial'> = {}
+): PropertyConfig<(T extends Constructor<infer R> ? R : any) | undefined> {
   return { initial: void initial, ...config };
 }
 
