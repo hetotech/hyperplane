@@ -4,14 +4,19 @@
     "rootDir": "..",
     "outDir": "./_compiled",
     "sourceMap": true,
-    "declaration": false,
+    "declaration": true,
+    "allowJs": true,
+    "checkJs": true,
     "rootDirs": [
        ".", "../src"
      ]
   },
   "include": [
     "../src/**/*.ts",
-    "*.spec.ts"
+    "*.spec.ts",
+    "*.spec.js"
   ],
-  "exclude": []
+  "exclude": [
+    "_compiled/**/*"
+  ]
 }

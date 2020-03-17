@@ -28,6 +28,14 @@ export type Setters<C extends PropertiesConfig> = { [K in keyof C]: Setter<TypeF
 export type SettersEntry<E> = Observable<[keyof E, E[keyof E] extends Setter<infer T> ? T : any]>;
 export type Renderer<T = unknown> = (result: T, container: (Element | DocumentFragment)) => void;
 export type ConfigValues<P extends PropertiesConfig> = { [K in keyof P]: P[K] extends PropertyConfig<infer T> ? T : unknown };
+export type UpgradedElement<E extends Element, P extends PropertiesConfig> = E & ConfigValues<P>;
+
+type Constructor<T> = {(value?: any): T} | { new(...args: any[]): T };
+
+export function voidProp<T extends Constructor<any>>(
+  initial: T, config: Omit<PropertyConfig<(T extends Constructor<infer R> ? R : any) | undefined>, 'initial'> = {}): PropertyConfig<(T extends Constructor<infer R> ? R : any) | undefined> {
+  return { initial: void initial, ...config };
+}
 
 export function prop<T>(
   initial: T, config: Omit<PropertyConfig<T>, 'initial'> = {}): PropertyConfig<T> {
