@@ -1,5 +1,5 @@
 {
-  "name": "@draccoz/hyperplane",
+  "name": "@hetotech/hyperplane",
   "version": "0.0.4",
   "description": "A ReactiveX based components system for Web Components",
   "main": "dist/hyperplane.js",
@@ -10,14 +10,14 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/Draccoz/hyperplane.git"
+    "url": "git+https://github.com/hetotech/hyperplane.git"
   },
   "author": "Daniel Busłowicz",
   "license": "ISC",
   "bugs": {
-    "url": "https://github.com/Draccoz/hyperplane/issues"
+    "url": "https://github.com/hetotech/hyperplane/issues"
   },
-  "homepage": "https://github.com/Draccoz/hyperplane#readme",
+  "homepage": "https://github.com/hetotech/hyperplane#readme",
   "peerDependencies": {
     "rxjs": "^6.5.3"
   },
