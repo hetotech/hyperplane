@@ -1,6 +1,6 @@
 {
   "name": "@draccoz/hyperplane",
-  "version": "0.0.3",
+  "version": "0.0.4",
   "description": "A ReactiveX based components system for Web Components",
   "main": "dist/hyperplane.js",
   "module": "dist/hyperplane.js",
@@ -21,7 +21,9 @@
   "peerDependencies": {
     "rxjs": "^6.5.3"
   },
-  "publishConfig": { "registry": "https://npm.pkg.github.com/" },
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com/"
+  },
   "devDependencies": {
     "@types/chai": "^4.2.7",
     "@types/mocha": "^5.2.7",
