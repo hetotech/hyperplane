@@ -1,11 +1,12 @@
 {
   "name": "@hetotech/hyperplane",
-  "version": "0.1.0",
+  "version": "0.1.3",
   "description": "A ReactiveX based components system for Web Components",
   "main": "dist/hyperplane.js",
   "module": "dist/hyperplane.js",
   "scripts": {
     "build": "tsc",
+    "fix-dist-imports": "sed -r -i \"s/'rxjs\\/operators'/'..\\/..\\/..\\/rxjs\\/_esm2015\\/operators\\/index.js'/g;s/'rxjs'/'..\\/..\\/..\\/rxjs\\/_esm2015\\/index.js'/g\" dist/hyperplane.js",
     "test": "tsc -b test --pretty && mocha -r esm --timeout 0 --ui bdd test/_compiled/**/*.spec.js"
   },
   "repository": {
