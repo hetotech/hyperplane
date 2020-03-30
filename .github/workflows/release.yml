@@ -50,7 +50,7 @@ jobs:
       run: |
         npm version patch
         VERSION=$(npm version | grep hyperplane | sed "s/^.*hyperplane': '//;s/',//")
-        git commit -m "Auto bumping patch version $VERSION" --amend
+        git commit -m "Auto bumping patch version ($VERSION)" --amend
       if: github.event_name == 'push'
 
     - name: Publish and push updated package.json
