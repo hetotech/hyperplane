@@ -131,7 +131,13 @@ export function create<P extends PropertiesConfig, T>(
   const connected$ = fromEvent(node, 'connected');
   const disconnected$ = fromEvent(node, 'disconnected');
 
-  node.addEventListener('attributeChanged', ({ detail: [attr, , newValue] }: CustomEventInit) => setters[ attr ][ 0 ].next(newValue));
+  node.addEventListener('attributeChanged', ({ detail: [attr, , newValue] }: CustomEventInit) => {
+    const setter = setters[ attr ];
+    if (!setter) {
+      return;
+    }
+    setter[ 0 ].next(newValue);
+  });
   node.addEventListener('connected', () => registeredObservables
     .map((observable) => observable.subscribe())
     .forEach((subscription) => subscriptions.push(subscription))
