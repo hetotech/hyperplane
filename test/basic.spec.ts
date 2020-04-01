@@ -230,6 +230,7 @@ describe('create', () => {
       'component',
       'subscribe',
       'useTemplate',
+      'update$',
       'connected$',
       'disconnected$',
       'propertyChanged$'
@@ -373,5 +374,7 @@ describe('create', () => {
       sub.unsubscribe();
     });
   });
-  describe('attributeChanged reaction');
+  describe('attributeChanged reaction', () => {
+    it('should be tested');
+  });
 });
