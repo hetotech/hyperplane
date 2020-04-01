@@ -373,4 +373,5 @@ describe('create', () => {
       sub.unsubscribe();
     });
   });
+  describe('attributeChanged reaction');
 });

@@ -1,5 +1,5 @@
 /// <reference path="types.d.ts"/>
-import { BehaviorSubject, fromEvent, merge, Observable, OperatorFunction, Subscription } from 'rxjs';
+import { BehaviorSubject, fromEvent, merge, Observable, OperatorFunction, Subject, Subscription } from 'rxjs';
 import { distinctUntilChanged, map, tap } from 'rxjs/operators';
 
 /**
@@ -119,12 +119,24 @@ export function mapProperties<P extends ObjectOf<PropertyConfig<any>>>(propertie
   );
 }
 
+export interface HyperplaneInterface<P extends PropertiesConfig, T = any> {
+  subscribe: (...observables: Observable<any>[]) => number;
+  useTemplate: (template: (props: ConfigValues<P>) => T) => void;
+  connected$: Observable<Event>;
+  disconnected$: Observable<Event>;
+  propertyChanged$: SettersEntry<Setters<P>>;
+  update$: Subject<unknown>;
+  component: Element & ConfigValues<P>;
+}
+
 export function create<P extends PropertiesConfig, T>(
-  node: Element, properties: P, { renderer }: { renderer: Renderer<T> }) {
+  node: Element, properties: P, { renderer }: { renderer: Renderer<T> }): HyperplaneInterface<P, T> {
   const subscriptions = [] as Subscription[];
   const registeredObservables = [] as Observable<any>[];
 
   const setters = createPropertiesDescriptors(node, properties);
+
+  const update$ = new Subject();
 
   const propertyChanged$ = getPropertyChangeListener(node, setters);
 
@@ -132,7 +144,7 @@ export function create<P extends PropertiesConfig, T>(
   const disconnected$ = fromEvent(node, 'disconnected');
 
   node.addEventListener('attributeChanged', ({ detail: [attr, , newValue] }: CustomEventInit) => {
-    const setter = setters[ attr ];
+    const setter = setters[ attr ] || Object.values(setters).find(([, { attributeName }]) => attributeName === attr)
     if (!setter) {
       return;
     }
@@ -148,7 +160,7 @@ export function create<P extends PropertiesConfig, T>(
   );
 
   function useTemplate(template: (props: ConfigValues<P>) => T) {
-    subscribe(propertyChanged$.pipe(
+    subscribe(merge(propertyChanged$, update$).pipe(
       mapProperties<P>(properties, node),
       tap((props) => renderer(template(props), node.shadowRoot || node))
     ))
@@ -157,8 +169,7 @@ export function create<P extends PropertiesConfig, T>(
   const subscribe = (...observables: Observable<any>[]) => registeredObservables.push(...observables);
   return {
     subscribe, useTemplate,
-    connected$, disconnected$, propertyChanged$,
+    connected$, disconnected$, propertyChanged$, update$,
     component: node as typeof node & ConfigValues<P>
   };
 }
-
