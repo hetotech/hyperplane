@@ -2,11 +2,11 @@ import { expect } from 'chai';
 import { EventEmitter } from "events";
 import { noop, Subject } from "rxjs";
 import { tap } from "rxjs/operators";
-import { create, prop, voidProp } from "../src/hyperplane";
+import { create, prop, voidProp } from "../hyperplane";
 import { createSpy } from "./test-utils";
 
 /**
- * @typedef {import('../src/hyperplane').PropertyConfig<T>} PropertyConfig<T>
+ * @typedef {import('../hyperplane').PropertyConfig<T>} PropertyConfig<T>
  * @template T
  */
 
@@ -17,7 +17,7 @@ describe('create', () => {
     c: voidProp(Number)
   };
   /**
-   * @type {import('../src/hyperplane').UpgradedElement<Element, typeof properties>}
+   * @type {import('../hyperplane').UpgradedElement<Element, typeof properties>}
    */
   let node;
   /**

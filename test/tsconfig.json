@@ -9,7 +9,7 @@
     "checkJs": true
   },
   "include": [
-    "../src/**/*.ts",
+    "../src/*.ts",
     "*.spec.ts",
     "*.spec.js"
   ],

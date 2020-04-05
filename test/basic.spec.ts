@@ -17,7 +17,7 @@ import {
   PropertyConfig,
   Setters,
   SettersEntry
-} from '../src/hyperplane';
+} from '../hyperplane';
 import { assertTSType, createSpy } from './test-utils';
 
 const { expect } = require('chai');
