@@ -125,7 +125,7 @@ export interface HyperplaneInterface<P extends PropertiesConfig, T = any> {
   connected$: Observable<Event>;
   disconnected$: Observable<Event>;
   propertyChanged$: SettersEntry<Setters<P>>;
-  update$: Subject<unknown>;
+  update: () => void;
   component: Element & ConfigValues<P>;
 }
 
@@ -168,8 +168,8 @@ export function create<P extends PropertiesConfig, T>(
 
   const subscribe = (...observables: Observable<any>[]) => registeredObservables.push(...observables);
   return {
-    subscribe, useTemplate,
-    connected$, disconnected$, propertyChanged$, update$,
+    subscribe, useTemplate, update() { update$.next(); },
+    connected$, disconnected$, propertyChanged$,
     component: node as typeof node & ConfigValues<P>
   };
 }
