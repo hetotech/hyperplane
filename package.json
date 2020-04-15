@@ -1,6 +1,6 @@
 {
   "name": "@hetotech/hyperplane",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "description": "A ReactiveX based components system for Web Components",
   "main": "hyperplane.js",
   "module": "hyperplane.js",
