@@ -230,7 +230,7 @@ describe('create', () => {
       'component',
       'subscribe',
       'useTemplate',
-      'update$',
+      'update',
       'connected$',
       'disconnected$',
       'propertyChanged$'
