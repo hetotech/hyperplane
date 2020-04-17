@@ -19,7 +19,7 @@ export function createSpy(cb?: Function): Spy {
     called: { get() {return calls.size > 0; } },
     calledTimes: { get() {return calls.size; } },
     calledWith: { get() {return new Set(calls); } },
-    lastCalledWith: { get() {return [...calls].pop();}},
+    lastCalledWith: { get() {return [...calls].pop();} },
     nthCallArgs: { value(n: number) { return [...calls][ n ]; } },
     nthCallWith: {
       value(n: number, ...args: any[]) {

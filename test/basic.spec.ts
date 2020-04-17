@@ -1,4 +1,3 @@
-import { EventEmitter } from 'events';
 import {
   BehaviorSubject,
   noop,
@@ -18,6 +17,7 @@ import {
   Setters,
   SettersEntry
 } from '../hyperplane';
+import { EventMock, HTMLElementMock } from './mocks';
 import { assertTSType, createSpy } from './test-utils';
 
 const { expect } = require('chai');
@@ -85,7 +85,7 @@ describe('createPropertiesDescriptors', () => {
   let descriptors: Setters<typeof props>;
   let base: Element & ConfigValues<typeof props>;
   beforeEach(() => {
-    base = {} as any;
+    base = new HTMLElementMock() as any;
     descriptors = createPropertiesDescriptors(base, props);
   });
   it('should return a frozen object', () => {
@@ -152,12 +152,7 @@ describe('getPropertyChangeListener', () => {
   let propertyChanged$: SettersEntry<typeof descriptors>;
 
   beforeEach(() => {
-    base = {
-      attributes: {},
-      setAttribute(qualifiedName: string, value: string): void {
-        (this.attributes as any)[ qualifiedName ] = value;
-      }
-    } as any;
+    base = new HTMLElementMock() as any;
     descriptors = createPropertiesDescriptors(base, props);
     propertyChanged$ = getPropertyChangeListener(base, descriptors);
   });
@@ -200,7 +195,7 @@ describe('getPropertyChangeListener', () => {
     const sub = propertyChanged$.subscribe(spy);
     spy.resetSpy();
     base.baz = 30;
-    expect((base.attributes as any)[ 'baz' ]).to.equal('30');
+    expect((base.attributes as any).get('baz')).to.equal('30');
     sub.unsubscribe();
   });
 });
@@ -212,16 +207,13 @@ describe('create', () => {
     c: {} as PropertyConfig<number>
   };
   let node: Element & ConfigValues<typeof properties>;
-  let emitter: EventEmitter;
 
   beforeEach(() => {
-    node = Object.defineProperties(new EventEmitter(), {
-      addEventListener: { value: EventEmitter.prototype.on },
-      a: { value: 1, configurable: true, enumerable: true, writable: true },
-      b: { value: 2, configurable: true, enumerable: true, writable: true },
-      c: { value: 3, configurable: true, enumerable: true, writable: true }
-    }) as any;
-    emitter = node as any;
+    node = Object.assign(new HTMLElementMock() as any, {
+      a: 1,
+      b: 2,
+      c: 3,
+    }) as HTMLElement & { a: number, b: number, c: number };
   });
 
   it('should return subscribe function, template setter and lifecycle observables', () => {
@@ -253,27 +245,25 @@ describe('create', () => {
     it('should subscribe an observable on connected event and unsubscribe on disconnected', () => {
       const { subscribe } = create(node, properties, { renderer: noop });
       const spy = createSpy();
-      let behaviorSubject = new Subject<number>();
+      const behaviorSubject = new Subject<number>();
       subscribe(behaviorSubject.pipe(tap(spy)));
       behaviorSubject.next(1);
       expect(spy.calledTimes).to.equal(0);
-      emitter.emit('connected');
+      node.dispatchEvent(new EventMock('connected') as Event);
       behaviorSubject.next(2);
       expect(spy.calledTimes).to.equal(1);
-      emitter.emit('disconnected');
+      node.dispatchEvent(new EventMock('disconnected') as Event);
       behaviorSubject.next(3);
       expect(spy.calledTimes).to.equal(1);
     });
   });
   describe('useTemplate', () => {
     beforeEach(() => {
-      const em = new EventEmitter() as any;
-      em.addEventListener = EventEmitter.prototype.on;
-      em.a = 1;
-      em.b = 2;
-      em.c = 3;
-      node = em as any;
-      emitter = node as any;
+      node = Object.assign(new HTMLElementMock() as any, {
+        a: 1,
+        b: 2,
+        c: 3,
+      }) as HTMLElement & { a: number, b: number, c: number };
     });
 
     it('should when subscribed, map each propertyChanged$ signal to configured properties values and call render with provided template', () => {
@@ -285,7 +275,7 @@ describe('create', () => {
         assertTSType<number>(c);
       });
       useTemplate(template);
-      emitter.emit('connected');
+      node.dispatchEvent(new EventMock('connected') as Event);
       expect(template.lastCalledWith).to.deep.equal([
         {
           a: 1,
@@ -302,52 +292,38 @@ describe('create', () => {
         }
       ]);
       template.resetSpy();
-      emitter.emit('disconnected');
+      node.dispatchEvent(new EventMock('disconnected') as Event);
+
       node.b = 200;
       expect(template.called).to.be.false;
     });
   });
   describe('connected$', () => {
-    beforeEach(() => {
-      const em = new EventEmitter() as any;
-      em.addEventListener = EventEmitter.prototype.on;
-      node = em as any;
-      emitter = node as any;
-    });
+    beforeEach(() => node = new HTMLElementMock() as any);
     it('should send next signal on connected event fired', () => {
       const spy = createSpy();
       const { connected$ } = create(node, properties, { renderer: noop });
       const sub = connected$.subscribe(spy);
       expect(spy.called).to.be.false;
-      emitter.emit('connected');
+      node.dispatchEvent(new EventMock('connected') as Event);
       expect(spy.called).to.be.true;
       sub.unsubscribe();
     });
   });
   describe('disconnected$', () => {
-    beforeEach(() => {
-      const em = new EventEmitter() as any;
-      em.addEventListener = EventEmitter.prototype.on;
-      node = em as any;
-      emitter = node as any;
-    });
+    beforeEach(() => node = new HTMLElementMock() as any);
     it('should send next signal on disconnected event fired', () => {
       const spy = createSpy();
       const { disconnected$ } = create(node, properties, { renderer: noop });
       const sub = disconnected$.subscribe(spy);
       expect(spy.called).to.be.false;
-      emitter.emit('disconnected');
+      node.dispatchEvent(new EventMock('disconnected') as Event);
       expect(spy.called).to.be.true;
       sub.unsubscribe();
     });
   });
   describe('propertyChanged$', () => {
-    beforeEach(() => {
-      const em = new EventEmitter() as any;
-      em.addEventListener = EventEmitter.prototype.on;
-      node = em as any;
-      emitter = node as any;
-    });
+    beforeEach(() => node = new HTMLElementMock() as any);
     it('should send next event when any configured property changes', () => {
       const spy = createSpy();
       const { propertyChanged$ } = create(node, properties, { renderer: noop });

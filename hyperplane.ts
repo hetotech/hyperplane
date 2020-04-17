@@ -5,7 +5,7 @@ import { distinctUntilChanged, map, tap } from 'rxjs/operators';
 /**
  * Built-in converters supported by the library
  */
-export type BuiltInConverters = typeof JSON | typeof URL | typeof Boolean;
+export type BuiltInConverters = typeof JSON | typeof URL | typeof Boolean | typeof Date;
 
 /**
  * Converter interface (for serializing and deserializing data)
@@ -30,6 +30,7 @@ export type SettersEntry<E> = Observable<[keyof E, E[keyof E] extends Setter<inf
 export type Renderer<T = unknown> = (result: T, container: (Element | DocumentFragment)) => void;
 export type ConfigValues<P extends PropertiesConfig> = { [K in keyof P]: P[K] extends PropertyConfig<infer T> ? T : unknown };
 export type UpgradedElement<E extends Element, P extends PropertiesConfig> = E & ConfigValues<P>;
+export type CustomComponent<P extends PropertiesConfig> = HTMLElement & ConfigValues<P>;
 
 type Constructor<T> = { (value?: any): T } | { new(...args: any[]): T };
 
@@ -45,6 +46,38 @@ export function prop<T>(
   return { initial, ...config };
 }
 
+export function parseAttribute<T extends Element, P extends PropertyConfig<any>>(node: T, key: string, config: P) {
+  const attributeName = config.attributeName;
+  let attribute = (attributeName ? node.getAttribute(attributeName) : node.getAttribute(key)) as string;
+  const converter = config.converter || config.initial && config.initial.constructor || JSON;
+
+  if (!attribute && converter !== Boolean) {
+    return config.initial;
+  }
+
+  switch (converter) {
+    case JSON:
+      try {
+        return JSON.parse(attribute);
+      } catch (e) {
+        return JSON.parse(`"${attribute.replace(/"/g, '\\"')}"`);
+      }
+    case Boolean:
+      return attributeName ? node.hasAttribute(attributeName) : node.hasAttribute(key);
+    case URL:
+      return new URL(attribute, location.origin);
+    case Date:
+      const date = new Date(attribute);
+      return date.toString() === 'Invalid Date' ? new Date(Number(attribute)) : date;
+    case String:
+    case Number:
+    case BigInt:
+      return converter(attribute);
+    default:
+      return converter.parse(attribute);
+  }
+}
+
 export function createPropertiesDescriptors<T extends PropertiesConfig>(
   base: Element, props: T): Setters<typeof props> {
   const newBase = base as typeof base & ConfigValues<T>
@@ -52,8 +85,9 @@ export function createPropertiesDescriptors<T extends PropertiesConfig>(
   const triggers = {} as Setters<typeof props>;
 
   Object.defineProperties(newBase, Object.fromEntries(keys.map(key => {
-    const config = props[ key ];
-    const trigger$ = new BehaviorSubject(key in newBase ? newBase[ key ] : config.initial);
+    const config = props[ key ] as PropertyConfig<any>;
+    const initial = key in newBase ? newBase[ key ] : parseAttribute(newBase, key as string, config);
+    const trigger$ = new BehaviorSubject(initial);
     triggers[ key ] = [trigger$, config];
     return [
       key, {
@@ -144,11 +178,12 @@ export function create<P extends PropertiesConfig, T>(
   const disconnected$ = fromEvent(node, 'disconnected');
 
   node.addEventListener('attributeChanged', ({ detail: [attr, , newValue] }: CustomEventInit) => {
-    const setter = setters[ attr ] || Object.values(setters).find(([, { attributeName }]) => attributeName === attr)
+    const [key, setter] = [attr, setters[ attr ]] || Object.entries(setters)
+      .find(([, [, { attributeName }]]) => attributeName === attr) || [];
     if (!setter) {
       return;
     }
-    setter[ 0 ].next(newValue);
+    setter[ 0 ].next(parseAttribute(node, key, newValue));
   });
   node.addEventListener('connected', () => registeredObservables
     .map((observable) => observable.subscribe())
