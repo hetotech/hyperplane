@@ -42,6 +42,7 @@ describe('create', () => {
     it('should subscribe an observable on connected event and unsubscribe on disconnected', () => {
       const { subscribe } = create(node, properties, { renderer: noop });
       const spy = createSpy();
+      /** @type {Subject<number>} */
       let behaviorSubject = new Subject();
       subscribe(behaviorSubject.pipe(tap(spy)));
       behaviorSubject.next(1);
