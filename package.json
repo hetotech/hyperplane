@@ -7,7 +7,6 @@
   "typings": "hyperplane.d.ts",
   "scripts": {
     "build": "tsc",
-    "fix-dist-imports": "sed -r -i \"s/'rxjs\\/operators'/'..\\/..\\/rxjs\\/_esm2015\\/operators\\/index.js'/g;s/'rxjs'/'..\\/..\\/rxjs\\/_esm2015\\/index.js'/g\" hyperplane.js",
     "test": "tsc -b test --pretty && mocha -r esm --timeout 0 --ui bdd test/_compiled/**/*.spec.js"
   },
   "repository": {
@@ -22,9 +21,6 @@
   "homepage": "https://github.com/hetotech/hyperplane#readme",
   "peerDependencies": {
     "rxjs": "^6.5.3"
-  },
-  "publishConfig": {
-    "registry": "https://npm.pkg.github.com/"
   },
   "devDependencies": {
     "@types/chai": "^4.2.7",

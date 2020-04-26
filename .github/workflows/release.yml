@@ -26,7 +26,7 @@ jobs:
 
     - name: Configure npm and git
       run: |
-        npm set //npm.pkg.github.com/:_authToken=${{secrets.GITHUB_TOKEN}}
+        npm set //registry.npmjs.org/:_authToken=${{secrets.NPM_AUTH_TOKEN}}
         git config user.email "hetotech@users.noreply.github.com"
         git config user.name "GitHub Actions"
 
@@ -40,18 +40,18 @@ jobs:
       run: npm run build --if-present
 
     - name: Fix dist import paths
-      run: npm run fix-dist-imports
+      run: sed -r -i "s/'rxjs\/operators'/'..\/..\/rxjs\/_esm2015\/operators\/index.js'/g;s/'rxjs'/'..\/..\/rxjs\/_esm2015\/index.js'/g" hyperplane.js
 
     - name: Update version
-      run: npm version ${GITHUB_REF:10} -m "Auto updating version to match a release (${GITHUB_REF:10})"
       if: github.event_name == 'release'
+      run: npm version ${GITHUB_REF:10} -m "Auto updating version to match a release (${GITHUB_REF:10})"
 
     - name: Bump version
+      if: github.event_name == 'push'
       run: |
         npm version patch
         VERSION=$(npm version | grep hyperplane | sed "s/^.*hyperplane': '//;s/',//")
         git commit -m "Auto bumping patch version ($VERSION)" --amend
-      if: github.event_name == 'push'
 
     - name: Publish and push updated package.json
       run: |
